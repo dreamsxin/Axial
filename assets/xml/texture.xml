@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<texture>
+	<charset>
+		<png charsetName="templeKnight" type="char" tileWidth="64" tileHeight="64" tileX="8" tileY="4" offsetX="10" offsetY="10">texture/character/templeKnightSet.png</png>
+		<png charsetName="bandit" type="char" tileWidth="64" tileHeight="64" tileX="8" tileY="4" offsetX="10" offsetY="10">texture/character/banditSet.png</png>
+		<png charsetName="fallen" type="char" tileWidth="64" tileHeight="64" tileX="8" tileY="4" offsetX="10" offsetY="10">texture/character/fallenSet.png</png>
+		<png charsetName="wolf" type="char" tileWidth="64" tileHeight="64" tileX="8" tileY="4" offsetX="10" offsetY="10">texture/character/wolfSet.png</png>
+		<png charsetName="rat" type="char" tileWidth="64" tileHeight="64" tileX="8" tileY="4" offsetX="10" offsetY="10">texture/character/ratSet.png</png>
+		<png charsetName="orc" type="char" tileWidth="64" tileHeight="64" tileX="8" tileY="4" offsetX="10" offsetY="10">texture/character/orcSet.png</png>
+		<png charsetName="orge" type="char" tileWidth="64" tileHeight="64" tileX="8" tileY="4" offsetX="10" offsetY="10">texture/character/orgeSet.png</png>
+		<png charsetName="zombie" type="char" tileWidth="64" tileHeight="64" tileX="8" tileY="4" offsetX="10" offsetY="10">texture/character/zombieSet.png</png>
+		<png charsetName="charset1" type="char" tileWidth="64" tileHeight="64" tileX="8" tileY="5" offsetX="10" offsetY="10">texture/character/charset1.png</png>
+		<png charsetName="charset2" type="char" tileWidth="64" tileHeight="64" tileX="8" tileY="4" offsetX="10" offsetY="10">texture/character/charset2.png</png>
+	</charset>
+	<tileset>
+		<png tilesetName="tileset1" tileWidth="60" tileHeight="40" tileX="10" tileY="6">texture/tile/tileset.png</png>
+		<png tilesetName="tileset2" tileWidth="60" tileHeight="40" tileX="10" tileY="6">texture/tile/tileset2.png</png>
+	</tileset>
+	<addtileset>
+		<png tilesetName="addtileset1"  tileWidth="60" tileHeight="40" tileX="10" tileY="6">texture/tile/addtileset.png</png>
+	</addtileset>
+	<fxset>
+		<png fxsetName="fxset1" tileWidth="30" tileHeight="30" tileX="4" tileY="3" offsetX="0" offsetY="0">texture/fx/fxset.png</png>
+	</fxset>
+	<emoticonset>
+		<png emoticonsetName="emoticonset1" tileWidth="20" tileHeight="30" tileX="6" tileY="2" offsetX="0" offsetY="0">texture/emoticon/emoticonset.png
+		</png>
+	</emoticonset>
+	<itemset>
+		<png name="itemset1" tileWidth="15" tileHeight="15" tileX="5" tileY="5" offsetX="0" offsetY="0">texture/item/itemset.png</png>
+	</itemset>
+</texture>

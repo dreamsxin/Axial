@@ -24,6 +24,14 @@
 - ✅ Mouse hover highlight
 - ✅ Screen → Tile picking
 
+### 4. ResourceManager (`src/core/ResourceManager.ts`)
+- ✅ XML texture configuration parsing
+- ✅ Tileset loading (tileset.png, addtileset.png)
+- ✅ Character sprite loading (10 character sets)
+- ✅ FX texture loading
+- ✅ Frame extraction from texture atlases
+- ✅ Asset path resolution
+
 ### 4. Interactive Demo (`demo/`)
 - ✅ 20×15×2 map with terrain
 - ✅ Mouse hover/click interaction
@@ -33,6 +41,13 @@
 ---
 
 ## 🎯 Demo Controls
+
+**Main Demo (index.html):** http://localhost:8080
+
+**Resource Test (resource-test.html):** http://localhost:8080/resource-test.html
+- View loaded tilesets with frame preview
+- View character sprites (10 character sets)
+- Verify texture atlas loading
 
 | Input | Action |
 |-------|--------|
@@ -98,13 +113,23 @@ AxialV2/
 │   ├── core/
 │   │   ├── Tile.ts          # Tile data structure
 │   │   ├── Map.ts           # 3D tile grid
+│   │   ├── ResourceManager.ts # Asset loading
 │   │   └── index.ts
 │   └── render/
 │       ├── IsoRenderer.ts   # PixiJS renderer
 │       └── index.ts
+├── assets/                    # IsoEngine resources
+│   ├── tilesets/            # tileset.png, addtileset.png
+│   ├── characters/          # 10 character sets
+│   ├── fx/                  # Effects
+│   ├── emoticons/           # Emoticons
+│   ├── items/               # Items
+│   └── xml/                 # texture.xml
 ├── demo/
-│   ├── index.html
-│   └── main.ts              # Demo entry point
+│   ├── index.html           # Main demo
+│   ├── main.ts
+│   ├── resource-test.html   # Resource test
+│   └── resource-test.ts
 ├── package.json
 ├── tsconfig.json
 ├── vite.config.ts
