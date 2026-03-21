@@ -1,0 +1,28 @@
+{
+  "name": "axialv2",
+  "version": "1.0.0",
+  "description": "WebGL Isometric Game Engine - Port of IsoEngine AS3 to TypeScript/PixiJS",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [
+    "isometric",
+    "game",
+    "engine",
+    "webgl",
+    "pixijs"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "pixi.js": "^8.0.0",
+    "typescript": "^5.8.0",
+    "vite": "^6.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0"
+  }
+}

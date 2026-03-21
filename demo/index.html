@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Axial V2 - Phase 1 Demo</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background: #0f0f1a;
+      color: #fff;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+    }
+    #canvas-container {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    #ui {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 15px;
+      border-radius: 8px;
+      font-size: 14px;
+      max-width: 300px;
+    }
+    #ui h1 {
+      font-size: 18px;
+      margin-bottom: 10px;
+      color: #4a90a4;
+    }
+    #ui p {
+      margin: 5px 0;
+      color: #aaa;
+    }
+    #info {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #4a90a4;
+    }
+    #debug-panel {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      min-width: 180px;
+    }
+    #debug-panel h2 {
+      font-size: 14px;
+      margin: 0 0 8px 0;
+      color: #f0a500;
+    }
+    #debug-panel label {
+      cursor: pointer;
+      user-select: none;
+    }
+    #debug-panel input[type="checkbox"] {
+      cursor: pointer;
+    }
+    #debug-panel p {
+      margin: 4px 0;
+      font-family: 'Consolas', monospace;
+    }
+    #layer-info {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 12px;
+    }
+    #layer-info h3 {
+      font-size: 13px;
+      margin-bottom: 8px;
+      color: #4a90a4;
+    }
+    .layer-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 4px 0;
+      font-size: 11px;
+    }
+    .layer-color {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div id="canvas-container"></div>
+  
+  <div id="ui">
+    <h1>🎮 Axial V2 - Phase 1</h1>
+    <p><strong>Isometric Grid Demo</strong></p>
+    <hr style="border: 0; border-top: 1px solid #333; margin: 10px 0;" />
+    <p>🖱️ <strong>Hover:</strong> Highlight tiles</p>
+    <p>🖱️ <strong>Left Click:</strong> Select tile</p>
+    <p>🖱️ <strong>Right Drag:</strong> Pan world</p>
+    <p>🎯 <strong>WASD:</strong> Move cursor</p>
+    <hr style="border: 0; border-top: 1px solid #333; margin: 10px 0;" />
+    <p id="tile-info">Tile: --</p>
+  </div>
+
+  <div id="debug-panel">
+    <h2>🔧 Debug</h2>
+    <hr style="border: 0; border-top: 1px solid #333; margin: 8px 0;" />
+    <label style="display: flex; align-items: center; gap: 8px; margin: 5px 0;">
+      <input type="checkbox" id="chk-grid" checked />
+      <span>Grid Markers</span>
+    </label>
+    <label style="display: flex; align-items: center; gap: 8px; margin: 5px 0;">
+      <input type="checkbox" id="chk-coords" checked />
+      <span>Tile Dots</span>
+    </label>
+    <label style="display: flex; align-items: center; gap: 8px; margin: 5px 0;">
+      <input type="checkbox" id="chk-bounds" />
+      <span>Tile Bounds</span>
+    </label>
+    <hr style="border: 0; border-top: 1px solid #333; margin: 8px 0;" />
+    <p style="font-size: 11px; color: #666;">Mouse: <span id="mouse-screen">--</span></p>
+    <p style="font-size: 11px; color: #666;">World: <span id="mouse-world">--</span></p>
+    <p style="font-size: 11px; color: #f0a500;">Detected Z: <span id="mouse-z">--</span></p>
+  </div>
+
+  <div id="layer-info">
+    <h3>📊 Layers</h3>
+    <div class="layer-row">
+      <div class="layer-color" style="background: #4a90a4;"></div>
+      <span>Layer Z=0 (Ground) - 50×50</span>
+    </div>
+    <div class="layer-row">
+      <div class="layer-color" style="background: #a44a90;"></div>
+      <span>Layer Z=1 (Upper) - 18×18</span>
+    </div>
+    <div class="layer-row" style="margin-top: 8px;">
+      <span>Cursor Z: <strong id="cursor-z-display" style="color: #ffff00;">0</strong></span>
+    </div>
+  </div>
+
+  <script type="module" src="./main.ts"></script>
+</body>
+</html>
