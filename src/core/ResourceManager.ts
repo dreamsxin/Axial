@@ -3,7 +3,7 @@
  * Based on IsoEngine/DataManager.as
  */
 
-import { Assets, Texture, Sprite } from 'pixi.js';
+import { Assets, Texture, Sprite, Rectangle } from 'pixi.js';
 
 export interface TilesetConfig {
   name: string;
@@ -141,6 +141,12 @@ export class ResourceManager {
     if (!xmlPath) {
       console.warn('[ResourceManager] Empty xmlPath provided');
       return '';
+    }
+    
+    // If path already starts with assets/, use it directly
+    if (xmlPath.startsWith('assets/')) {
+      console.log('[ResourceManager] Path already resolved:', xmlPath);
+      return xmlPath;
     }
     
     // Map XML paths to our asset folder structure
@@ -286,14 +292,16 @@ export class ResourceManager {
   getFrame(texture: Texture | null, frameX: number, frameY: number, frameWidth: number, frameHeight: number): Texture | null {
     if (!texture) return null;
     
+    const frameRect = new Rectangle(
+      frameX * frameWidth,
+      frameY * frameHeight,
+      frameWidth,
+      frameHeight
+    );
+    
     const frame = new Texture({
       source: texture.source,
-      frame: {
-        x: frameX * frameWidth,
-        y: frameY * frameHeight,
-        width: frameWidth,
-        height: frameHeight,
-      },
+      frame: frameRect,
     });
     
     return frame;

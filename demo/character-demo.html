@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Axial V2 - Character Sprite Demo</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background: #1a1a2e;
+      color: #eee;
+      font-family: 'Consolas', monospace;
+      overflow: hidden;
+    }
+    #canvas-container {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    #info-panel {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 15px;
+      border-radius: 8px;
+      font-size: 14px;
+      max-width: 350px;
+    }
+    #info-panel h2 {
+      margin-bottom: 10px;
+      color: #00d9ff;
+      font-size: 16px;
+    }
+    #info-panel p {
+      margin: 5px 0;
+      color: #aaa;
+    }
+    #character-select {
+      width: 100%;
+      margin-top: 5px;
+    }
+    #character-select option {
+      background: #1a1a2e;
+      color: #fff;
+    }
+    #character-select:hover {
+      border-color: #00d9ff;
+    }
+    #character-select:focus {
+      outline: none;
+      border-color: #00d9ff;
+      box-shadow: 0 0 8px rgba(0, 217, 255, 0.3);
+    }
+    #info-panel .value {
+      color: #fff;
+      font-weight: bold;
+    }
+    #controls {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 15px;
+      border-radius: 8px;
+    }
+    #controls h3 {
+      margin-bottom: 10px;
+      color: #00d9ff;
+      font-size: 14px;
+    }
+    #controls p {
+      margin: 3px 0;
+      font-size: 12px;
+      color: #aaa;
+    }
+    #controls kbd {
+      background: #333;
+      padding: 2px 6px;
+      border-radius: 3px;
+      color: #fff;
+    }
+    #direction-display {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    #direction-display h3 {
+      margin-bottom: 10px;
+      color: #00d9ff;
+      font-size: 14px;
+    }
+    #direction-arrow {
+      font-size: 48px;
+      color: #ffcc00;
+    }
+    #direction-name {
+      margin-top: 5px;
+      font-size: 16px;
+      color: #fff;
+    }
+    #frame-display {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #aaa;
+    }
+  </style>
+</head>
+<body>
+  <div id="canvas-container"></div>
+  
+  <div id="info-panel">
+    <h2>🎮 Character Demo</h2>
+    <div style="margin: 10px 0;">
+      <label for="character-select" style="color: #aaa; display: block; margin-bottom: 5px;">Character:</label>
+      <select id="character-select" style="background: #222; color: #fff; border: 1px solid #444; padding: 6px 10px; border-radius: 4px; font-size: 13px; width: 100%; cursor: pointer;">
+        <option value="">Loading...</option>
+      </select>
+    </div>
+    <hr style="border: none; border-top: 1px solid #333; margin: 10px 0;">
+    <p><strong style="color:#00d9ff">Action:</strong> <span class="value" id="direction-name">Stand</span></p>
+    <p><strong style="color:#00d9ff">View:</strong> <span class="value" id="direction-arrow" style="font-size:16px">Front (East) →</span></p>
+    <p><strong style="color:#00d9ff">Frame:</strong> <span class="value" id="char-frame">0/3</span></p>
+    <p><strong style="color:#00d9ff">Global:</strong> <span class="value" id="char-global-frame">0</span></p>
+    <p><strong style="color:#00d9ff">Pos:</strong> <span class="value" id="char-position">0, 0, 0</span></p>
+    <hr style="border: none; border-top: 1px solid #333; margin: 10px 0;">
+    <p style="font-size:12px;color:#666">Tile: <span id="tile-size">64×64</span> | Offset: <span id="offset">10,10</span></p>
+    <p style="font-size:12px;color:#666">Sheet: <span id="spritesheet">8×5</span> = <span id="total-frames">40</span> frames</p>
+  </div>
+
+  <div id="controls">
+    <h3>Controls</h3>
+    <p><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> - Move (auto Walk)</p>
+    <p><kbd>1</kbd> Stand | <kbd>2</kbd> Walk | <kbd>3</kbd> Attack | <kbd>4</kbd> Hurt</p>
+    <p><kbd>F</kbd> - Flip direction | <kbd>R</kbd> - Reset</p>
+    <p style="margin-top:8px;font-size:12px;color:#888">
+      <kbd>D</kbd>/<kbd>S</kbd>→Front(0-3) | <kbd>W</kbd>/<kbd>A</kbd>→Back(4-7)
+    </p>
+  </div>
+
+  <div id="direction-display">
+    <h3>Direction</h3>
+    <div id="dir-arrow-big" style="font-size:64px">→</div>
+    <div id="dir-name-big">Stand - Front</div>
+    <div id="frame-display">Frame: <span id="anim-frame-big">0</span>/<span id="max-frame-big">3</span></div>
+  </div>
+
+  <div id="grid-info" style="position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 8px; font-size: 12px;">
+    <h3 style="margin-bottom: 10px; color: #00d9ff;">📐 Grid Info</h3>
+    <p style="margin: 3px 0; color: #aaa;">Screen: <span id="screen-pos" style="color: #fff;">0, 0</span></p>
+    <p style="margin: 3px 0; color: #aaa;">Tile: <span id="tile-pos" style="color: #fff;">0, 0, 0</span></p>
+    <p style="margin: 3px 0; color: #aaa;">Character Screen: <span id="char-screen-pos" style="color: #fff;">0, 0</span></p>
+    <p style="margin: 3px 0; color: #aaa;">Container: <span id="container-pos" style="color: #fff;">0, 0</span></p>
+  </div>
+
+  <script type="module" src="./character-demo.ts"></script>
+</body>
+</html>
