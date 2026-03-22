@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Axial V2 - Phase 1 Demo</title>
+  <title>Axial V2 - Simple Demo Template</title>
   <style>
     * {
       margin: 0;
@@ -13,17 +13,14 @@
     body {
       background: #0f0f1a;
       color: #fff;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: 'Segoe UI', sans-serif;
       overflow: hidden;
     }
     #canvas-container {
       width: 100vw;
       height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
     }
-    #ui {
+    #info-panel {
       position: absolute;
       top: 10px;
       left: 10px;
@@ -32,40 +29,41 @@
       border-radius: 8px;
       font-size: 14px;
       max-width: 300px;
+      z-index: 1000;
     }
-    #ui h1 {
+    #info-panel h1 {
       font-size: 18px;
       margin-bottom: 10px;
       color: #4a90a4;
     }
-    #ui p {
+    #info-panel p {
       margin: 5px 0;
       color: #aaa;
     }
-
+    #info-panel hr {
+      border: 0;
+      border-top: 1px solid #333;
+      margin: 10px 0;
+    }
   </style>
 </head>
 <body>
   <div id="canvas-container"></div>
   
-  <div id="ui">
-    <h1>🎮 Axial V2 - Phase 1</h1>
-    <p><strong>Isometric Grid Demo</strong></p>
-    <hr style="border: 0; border-top: 1px solid #333; margin: 10px 0;" />
+  <div id="info-panel">
+    <h1>🎮 Axial V2 - Simple Demo</h1>
+    <p><strong>Minimal template with debug panel</strong></p>
+    <hr />
     <p>🖱️ <strong>Hover:</strong> Highlight tiles</p>
     <p>🖱️ <strong>Left Click:</strong> Select tile</p>
     <p>🖱️ <strong>Right Drag:</strong> Pan world</p>
     <p>⌨️ <strong>WASD:</strong> Move cursor</p>
     <p>⌨️ <strong>QE:</strong> Change Z level</p>
     <p>⌨️ <strong>X:</strong> Toggle axes</p>
+    <hr />
+    <p style="color: #888; font-size: 12px;">📍 Tile info in Debug Panel →</p>
   </div>
 
-  <div style="position: absolute; bottom: 10px; right: 10px; text-align: right;">
-    <a href="./demo-simple.html" style="color: #f0a500; text-decoration: none; font-size: 12px;">📄 Simple Template →</a>
-    <span style="color: #666; margin: 0 8px;">|</span>
-    <a href="./iso-tile-editor.html" style="color: #f0a500; text-decoration: none; font-size: 12px;">🎨 Tile Editor →</a>
-  </div>
-
-  <script type="module" src="./main.ts"></script>
+  <script type="module" src="./demo-simple.ts"></script>
 </body>
 </html>

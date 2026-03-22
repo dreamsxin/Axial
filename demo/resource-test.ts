@@ -38,7 +38,7 @@ async function init(): Promise<void> {
 
     // Load textures
     console.log('[Test] Loading textures...');
-    await resourceManager.loadTextures('assets');
+    await resourceManager.loadTextures();
     
     if (textureStatus) {
       textureStatus.textContent = `✅ ${resourceManager.textures.size} textures`;

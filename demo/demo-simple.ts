@@ -1,6 +1,6 @@
 /**
- * Axial V2 - Phase 1 Demo
- * Using reusable DebugPanel component
+ * Simple Demo Template - Using reusable DebugPanel component
+ * This is a minimal template for creating new isometric demos
  */
 
 import { IsoRenderer } from '../src/render/IsoRenderer';
@@ -9,8 +9,35 @@ import { Tile } from '../src/core/Tile';
 import { DebugPanel } from '../src/ui/DebugPanel';
 import { Graphics } from 'pixi.js';
 
-// Custom renderer with distinct layer colors (matching DebugPanel)
-class LayerIsoRenderer extends IsoRenderer {
+// Create map (20x20x2)
+const map = new Map({ width: 20, height: 20, high: 2 });
+
+// Generate terrain
+function generateTerrain(): void {
+  const frames: number[] = [];
+  
+  for (let z = 0; z < 2; z++) {
+    for (let y = 0; y < 20; y++) {
+      for (let x = 0; x < 20; x++) {
+        if (z === 0) {
+          frames.push(7); // Ground layer
+        } else {
+          // Upper platform (8x8)
+          if (x > 5 && x < 14 && y > 5 && y < 14) {
+            frames.push(1);
+          } else {
+            frames.push(0);
+          }
+        }
+      }
+    }
+  }
+
+  map.loadFromFrames(frames);
+}
+
+// Custom renderer with distinct layer colors
+class ColoredIsoRenderer extends IsoRenderer {
   renderMapWithColors(map: Map): void {
     // Clear existing tiles
     const childrenToRemove = this.mapContainer.children.filter(
@@ -38,8 +65,7 @@ class LayerIsoRenderer extends IsoRenderer {
     graphics.closePath();
     // Distinct colors matching DebugPanel: Z=0=blue-teal, Z=1=hot pink
     const baseColor = tile.position.z === 0 ? 0x4a90a4 : 0xff69b4;
-    const alpha = tile.walkable ? 0.85 : 0.4;
-    graphics.fill({ color: baseColor, alpha });
+    graphics.fill({ color: baseColor, alpha: tile.walkable ? 0.85 : 0.4 });
     graphics.stroke({ width: 1, color: 0xffffff, alpha: 0.5 });
     graphics.x = screenPos.x;
     graphics.y = screenPos.y;
@@ -93,8 +119,7 @@ class LayerIsoRenderer extends IsoRenderer {
   }
 }
 
-// Create renderer first
-const layerRenderer = new LayerIsoRenderer({
+const renderer = new ColoredIsoRenderer({
   width: window.innerWidth,
   height: window.innerHeight,
   tileWidth: 64,
@@ -103,35 +128,8 @@ const layerRenderer = new LayerIsoRenderer({
   backgroundColor: 0x1a1a2e,
 });
 
-// Create map (20x20x2 layers)
-const map = new Map({ width: 20, height: 20, high: 2 });
-
-// Generate terrain
-function generateTerrain(): void {
-  const frames: number[] = [];
-  
-  for (let z = 0; z < 2; z++) {
-    for (let y = 0; y < 20; y++) {
-      for (let x = 0; x < 20; x++) {
-        if (z === 0) {
-          frames.push(7);
-        } else {
-          // Upper platform (8x8)
-          if (x > 5 && x < 14 && y > 5 && y < 14) {
-            frames.push(1);
-          } else {
-            frames.push(0);
-          }
-        }
-      }
-    }
-  }
-
-  map.loadFromFrames(frames);
-}
-
-// Create debug panel (after renderer is created)
-const debugPanel = new DebugPanel(layerRenderer, map, {
+// Create debug panel with custom layer colors and sizes
+const debugPanel = new DebugPanel(renderer, map, {
   showGridMarkers: true,
   showTileDots: true,
   showTileBounds: false,
@@ -151,14 +149,14 @@ async function init(): Promise<void> {
   const container = document.getElementById('canvas-container');
   if (!container) return;
 
-  await layerRenderer.init(container);
+  await renderer.init(container);
   generateTerrain();
-  layerRenderer.renderMapWithColors(map);
+  renderer.renderMapWithColors(map);
   debugPanel.init();
 
-  // Use framework callbacks
-  layerRenderer.onPanMove((dx, dy, x, y) => {
-    const tile = layerRenderer.getTileAtScreen(x, y, map);
+  // Use framework callbacks for input
+  renderer.onPanMove((dx, dy, x, y) => {
+    const tile = renderer.getTileAtScreen(x, y, map);
     if (tile) {
       debugPanel.updateMouseDisplay(x, y, tile.position.x, tile.position.y, tile.position.z);
     }
@@ -166,7 +164,7 @@ async function init(): Promise<void> {
 
   // Listen for debug settings changes (map-related only)
   const rerenderMap = () => {
-    layerRenderer.renderMapWithColors(map);
+    renderer.renderMapWithColors(map);
   };
 
   debugPanel['chkGrid']?.addEventListener('change', rerenderMap);
@@ -175,30 +173,37 @@ async function init(): Promise<void> {
   
   // Grid lines and axes are handled internally by DebugPanel
 
-  layerRenderer.onClick((x, y) => {
-    const tile = layerRenderer.getTileAtScreen(x, y, map);
+  renderer.onClick((x, y) => {
+    const tile = renderer.getTileAtScreen(x, y, map);
     if (tile) {
       debugPanel.setCursor(tile.position.x, tile.position.y, tile.position.z);
       console.log('Selected tile:', tile.position, 'walkable:', tile.walkable);
     }
   });
 
-  // Mouse highlight
-  layerRenderer.app.stage.on('globalpointermove', (e) => {
-    if (layerRenderer.isDraggingNow()) return;
-    const tile = layerRenderer.getTileAtScreen(e.global.x, e.global.y, map);
+  // Mouse move - highlight tile
+  renderer.app.stage.on('globalpointermove', (e) => {
+    if (renderer.isDraggingNow()) return;
+    
+    const tile = renderer.getTileAtScreen(e.global.x, e.global.y, map);
     if (tile) {
-      layerRenderer.highlightTile(tile);
-      debugPanel.updateMouseDisplay(e.global.x, e.global.y, tile.position.x, tile.position.y, tile.position.z);
+      renderer.highlightTile(tile);
+      debugPanel.updateMouseDisplay(
+        e.global.x,
+        e.global.y,
+        tile.position.x,
+        tile.position.y,
+        tile.position.z
+      );
     } else {
-      layerRenderer.clearHighlight();
+      renderer.clearHighlight();
       const cursor = debugPanel.getCursor();
       debugPanel.updateMouseDisplay(e.global.x, e.global.y, cursor.x, cursor.y, '--');
     }
   });
 
-  // Keyboard controls
-  layerRenderer.setupKeyboard({
+  // Setup keyboard controls (WASD + QE)
+  renderer.setupKeyboard({
     onMove: (dx, dy, dz) => {
       const cursor = debugPanel.getCursor();
       debugPanel.setCursor(
@@ -220,16 +225,18 @@ async function init(): Promise<void> {
     }
   });
 
-  console.log('✅ Axial V2 Phase 1 Demo initialized');
+  console.log('✅ Simple Demo initialized');
   console.log('🗺️ Map: 20×20×2 (Z=1: 8×8 platform)');
   console.log('🎨 Layer colors: Z=0 (blue-teal), Z=1 (hot pink)');
+  console.log('🖱️ Right-drag pan enabled (context menu suppressed)');
+  console.log('⌨️ WASD + QE keyboard controls active');
   console.log('📐 Axes: X=red, Y=green, Z=blue (press X to toggle)');
 }
 
 init();
 
 // Re-render after pan
-layerRenderer.onPanEnd(() => {
+renderer.onPanEnd(() => {
   if (debugPanel['chkGridLines']?.checked) {
     debugPanel.renderGridLines();
   }
