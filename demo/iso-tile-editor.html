@@ -81,18 +81,23 @@
   <div id="info-bar">
     <span id="status">Loading...</span> |
     <span>Projection: <span id="projection-mode" style="color:#fbbf24;font-weight:bold;">Isometric</span></span> |
+    <span>View Angle: <span id="view-angle" style="color:#fbbf24;font-weight:bold;">45°</span></span> |
     <span>Mouse: <span id="mouse-pos">--</span></span> | 
     <span>Tile: <span id="tile-pos">--</span></span> |
     <span>Selected: <span id="selected-tile">None</span></span> |
-    <span>Left: Select/Place | Right: Clear | Drag: Pan | D: Debug | P: Projection</span>
+    <span>Left: Select/Place | Right: Clear | Drag: Pan | D: Toggle Grid | P: Projection</span>
   </div>
-  <div style="position:fixed; bottom:10px; right:10px; display:flex; gap:10px; align-items:center;">
+  <div style="position:fixed; bottom:10px; right:10px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
     <select id="projection-select" style="background:#333;color:#fff;border:1px solid #555;padding:8px;border-radius:4px;font-size:12px;cursor:pointer;">
       <option value="isometric">🔷 Isometric (30°)</option>
       <option value="dimetric">🔶 Dimetric (26.5°)</option>
       <option value="staggered">▣ Staggered</option>
     </select>
-    <button id="btn-debug" title="Toggle debug overlay">🐛 Debug</button>
+    <div style="display:flex;align-items:center;gap:5px;background:#333;padding:4px 8px;border-radius:4px;border:1px solid #555;">
+      <span style="font-size:11px;color:#aaa;">Angle:</span>
+      <input type="range" id="angle-slider" min="15" max="45" value="45" style="width:80px;cursor:pointer;" />
+      <span id="angle-value" style="font-size:11px;color:#fff;min-width:30px;">45°</span>
+    </div>
     <button id="btn-clear" class="danger">🗑️ Clear Grid</button>
     <button id="btn-export">📋 Export</button>
   </div>

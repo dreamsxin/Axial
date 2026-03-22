@@ -57,6 +57,7 @@ let selectedFrameIndex: number | null = null;
 let gridData: (number | null)[][] = [];
 let renderer: IsoRenderer;
 let map: Map;
+let debugPanel: DebugPanel;
 let paletteContainer: Container;
 let tilesetTexture: Texture | null = null;
 let isDragging = false;
@@ -66,6 +67,7 @@ let hoveredTile: { x: number; y: number } | null = null;
 let hoveredPaletteTile: number | null = null;
 let initialized = false;
 let currentProjection: 'isometric' | 'dimetric' | 'staggered' = 'isometric';
+let currentViewAngle: number = 45;  // View angle in degrees (default 45°)
 
 /**
  * Initialize the editor
@@ -110,7 +112,6 @@ async function init(): Promise<void> {
     // Setup buttons
     document.getElementById('btn-clear')?.addEventListener('click', clearGrid);
     document.getElementById('btn-export')?.addEventListener('click', exportData);
-    document.getElementById('btn-debug')?.addEventListener('click', toggleDebug);
     
     // Setup projection selector
     setupProjectionSelector();
@@ -134,6 +135,20 @@ async function initRenderer(container: HTMLElement): Promise<void> {
 
   map = new Map({ width: GRID_SIZE, height: GRID_SIZE, high: 1 });
 
+  // Create debug panel with grid enabled
+  debugPanel = new DebugPanel(renderer, map, {
+    showGrid: true,        // Enable grid lines from DebugPanel
+    showGridMarkers: false,
+    showTileDots: false,
+    showTileBounds: false,
+    showLayerInfo: false,
+    title: '🔧 Tile Editor',
+  });
+  debugPanel.init();
+
+  // Apply default view angle (45°)
+  setViewAngle(currentViewAngle);
+
   // Palette container on stage (left side)
   paletteContainer = new Container();
   paletteContainer.x = PALETTE_PADDING;
@@ -147,11 +162,18 @@ async function initRenderer(container: HTMLElement): Promise<void> {
 }
 
 /**
- * Toggle debug overlay
+ * Toggle debug overlay (grid lines via DebugPanel)
  */
 function toggleDebug(): void {
-  renderer.toggleDebugOverlay();
-  renderGrid();
+  // Toggle grid via DebugPanel checkbox
+  if (debugPanel) {
+    const chkGrid = document.getElementById('chk-grid-lines') as HTMLInputElement;
+    if (chkGrid) {
+      chkGrid.checked = !chkGrid.checked;
+      // Trigger change event to render grid lines
+      chkGrid.dispatchEvent(new Event('change'));
+    }
+  }
 }
 
 /**
@@ -161,8 +183,7 @@ function setupKeyboardShortcuts(): void {
   window.addEventListener('keydown', (e) => {
     switch (e.key.toLowerCase()) {
       case 'd':
-        renderer.toggleDebugOverlay();
-        renderGrid();
+        toggleDebug();
         break;
       case 'p':
         cycleProjection();
@@ -187,6 +208,26 @@ function setupProjectionSelector(): void {
     const newProjection = selectEl.value as 'isometric' | 'dimetric' | 'staggered';
     setProjection(newProjection);
   });
+  
+  // Setup view angle slider
+  setupViewAngleSlider();
+}
+
+function setupViewAngleSlider(): void {
+  const slider = document.getElementById('angle-slider') as HTMLInputElement;
+  const angleValue = document.getElementById('angle-value');
+  const viewAngleDisplay = document.getElementById('view-angle');
+  
+  if (!slider || !angleValue) return;
+  
+  slider.value = currentViewAngle.toString();
+  
+  slider.addEventListener('input', () => {
+    currentViewAngle = parseInt(slider.value, 10);
+    angleValue.textContent = `${currentViewAngle}°`;
+    if (viewAngleDisplay) viewAngleDisplay.textContent = `${currentViewAngle}°`;
+    setViewAngle(currentViewAngle);
+  });
 }
 
 function updateProjectionLabel(labelEl: HTMLElement, projection: string): void {
@@ -200,12 +241,33 @@ function updateProjectionLabel(labelEl: HTMLElement, projection: string): void {
 
 function setProjection(projection: 'isometric' | 'dimetric' | 'staggered'): void {
   currentProjection = projection;
-  renderer.config.projection = projection;
+  
+  // Update renderer's projection (this recreates isoMath)
+  renderer.setProjection(projection);
   
   const labelEl = document.getElementById('projection-mode');
   if (labelEl) updateProjectionLabel(labelEl, projection);
   
+  // Debug: test coordinate conversion
+  const testTile = { x: 5, y: 5, z: 0 };
+  const screenPos = renderer.isoMath.tileToScreen(testTile);
+  console.log(`[TileEditor] Projection ${projection}: Tile(5,5) → Screen(${screenPos.x}, ${screenPos.y})`);
+  
+  // Re-render grid and grid lines
   renderGrid();
+  
+  // Re-render grid lines if enabled (they depend on isoMath)
+  const chkGrid = document.getElementById('chk-grid-lines') as HTMLInputElement;
+  if (chkGrid?.checked && debugPanel) {
+    debugPanel.renderGridLines();
+  }
+  
+  // Re-render axes if enabled (they depend on isoMath)
+  const chkAxes = document.getElementById('chk-axes') as HTMLInputElement;
+  if (chkAxes?.checked && debugPanel) {
+    debugPanel.renderAxes();
+  }
+  
   console.log('[TileEditor] Projection:', projection);
 }
 
@@ -218,6 +280,46 @@ function cycleProjection(): void {
   if (selectEl) selectEl.value = next;
   
   setProjection(next);
+}
+
+/**
+ * Set view angle by adjusting tileHeight
+ * Formula: tileHeight = tileWidth / (2 * tan(angle))
+ * For isometric (30°): tileHeight = tileWidth / 2
+ */
+function setViewAngle(angle: number): void {
+  // Convert angle to radians
+  const radians = angle * Math.PI / 180;
+  
+  // Calculate new tileHeight based on view angle
+  // The formula derives from isometric projection geometry
+  const newTileHeight = TILE_WIDTH / (2 * Math.tan(radians));
+  
+  // Update renderer config
+  renderer.config.tileHeight = newTileHeight;
+  
+  // Update isoMath config
+  renderer.isoMath['config'].tileHeight = newTileHeight;
+  
+  // Debug output
+  const testTile = { x: 5, y: 5, z: 0 };
+  const screenPos = renderer.isoMath.tileToScreen(testTile);
+  console.log(`[TileEditor] Angle ${angle}°: tileHeight=${newTileHeight.toFixed(2)}, Tile(5,5) → Screen(${screenPos.x}, ${screenPos.y.toFixed(2)})`);
+  
+  // Re-render
+  renderGrid();
+  
+  // Re-render grid lines if enabled
+  const chkGrid = document.getElementById('chk-grid-lines') as HTMLInputElement;
+  if (chkGrid?.checked && debugPanel) {
+    debugPanel.renderGridLines();
+  }
+  
+  // Re-render axes if enabled (they depend on isoMath)
+  const chkAxes = document.getElementById('chk-axes') as HTMLInputElement;
+  if (chkAxes?.checked && debugPanel) {
+    debugPanel.renderAxes();
+  }
 }
 
 /**
@@ -321,12 +423,10 @@ function updateMouseDisplay(mouseX: number, mouseY: number, mousePosEl: HTMLElem
     if (tilePosEl) tilePosEl.textContent = `(${tile.position.x}, ${tile.position.y})`;
     hoveredTile = { x: tile.position.x, y: tile.position.y };
     renderer.highlightTile(tile);
-    if (renderer.isDebugOverlayVisible()) renderer.renderDebugOverlay(map);
   } else {
     if (tilePosEl) tilePosEl.textContent = '--';
     hoveredTile = null;
     renderer.clearHighlight();
-    if (renderer.isDebugOverlayVisible()) renderer.renderDebugOverlay(map);
   }
 }
 
@@ -452,9 +552,6 @@ function renderGrid(): void {
     renderIsoTile(tile.x, tile.y, tile.frame);
   }
 
-  // Grid outline
-  renderGridOutline();
-
   // Title
   const title = new Text('📐 10×10 Isometric Grid', {
     fontSize: 14,
@@ -466,11 +563,6 @@ function renderGrid(): void {
   title.x = renderer.isoMath.tileToScreen({ x: GRID_SIZE / 2, y: 0, z: 0 }).x;
   title.y = -30;
   renderer.mapContainer.addChild(title);
-
-  // Debug overlay
-  if (renderer.isDebugOverlayVisible()) {
-    renderer.renderDebugOverlay(map);
-  }
 
   // Bring containers to front
   renderer['bringContainersToFront']();
@@ -495,33 +587,6 @@ function renderIsoTile(gridX: number, gridY: number, frameIndex: number): void {
   sprite.x = screenPos.x;
   sprite.y = screenPos.y;
   renderer.mapContainer.addChild(sprite);
-}
-
-/**
- * Render grid outline
- */
-function renderGridOutline(): void {
-  const graphics = new Graphics();
-  for (let y = 0; y < GRID_SIZE; y++) {
-    for (let x = 0; x < GRID_SIZE; x++) {
-      if (gridData[y][x] === null) {
-        const screenPos = renderer.isoMath.tileToScreen({ x, y, z: 0 });
-        drawDiamondOutline(graphics, screenPos.x, screenPos.y, 0x333344, 0.3);
-      }
-    }
-  }
-  renderer.mapContainer.addChild(graphics);
-}
-
-function drawDiamondOutline(graphics: Graphics, x: number, y: number, color: number, alpha: number): void {
-  const w = TILE_WIDTH / 2;
-  const h = TILE_HEIGHT / 2;
-  graphics.moveTo(x, y);
-  graphics.lineTo(x + w, y + h);
-  graphics.lineTo(x, y + TILE_HEIGHT);
-  graphics.lineTo(x - w, y + h);
-  graphics.closePath();
-  graphics.stroke({ width: 1, color, alpha });
 }
 
 /**

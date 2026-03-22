@@ -51,8 +51,9 @@ export class IsoMath {
   tileToScreen(tile: TilePosition): ScreenPosition {
     switch (this.projection) {
       case 'isometric':
-      case 'dimetric':
         return this.isoTileToScreen(tile);
+      case 'dimetric':
+        return this.diamondTileToScreen(tile);
       case 'staggered':
         return this.staggeredTileToScreen(tile);
       default:
@@ -61,13 +62,27 @@ export class IsoMath {
   }
 
   /**
-   * Standard isometric/dimetric projection
+   * Standard isometric projection (30° angle, tileWidth = 2 × tileHeight)
    */
   private isoTileToScreen(tile: TilePosition): ScreenPosition {
     const { tileWidth, tileHeight, tileHigh } = this.config;
     return {
       x: (tile.x - tile.y) * tileWidth / 2,
       y: (tile.x + tile.y) * tileHeight / 2 - tile.z * tileHigh,
+    };
+  }
+
+  /**
+   * Dimetric projection (26.565° angle, common in 2D games like Diablo)
+   * Uses a 2:1 pixel ratio for cleaner pixel art rendering
+   */
+  private diamondTileToScreen(tile: TilePosition): ScreenPosition {
+    const { tileWidth, tileHeight, tileHigh } = this.config;
+    // Dimetric uses a 2:1 slope (26.565°) instead of isometric's 1:2 (30°)
+    // This gives cleaner pixel art with integer coordinates
+    return {
+      x: (tile.x - tile.y) * tileWidth / 2,
+      y: (tile.x + tile.y) * tileHeight / 4 - tile.z * tileHigh,
     };
   }
 
@@ -101,8 +116,9 @@ export class IsoMath {
   screenToTile(screen: ScreenPosition, z: number = 0): TilePosition {
     switch (this.projection) {
       case 'isometric':
-      case 'dimetric':
         return this.isoScreenToTile(screen, z);
+      case 'dimetric':
+        return this.diamondScreenToTile(screen, z);
       case 'staggered':
         return this.staggeredScreenToTile(screen, z);
       default:
@@ -111,7 +127,7 @@ export class IsoMath {
   }
 
   /**
-   * Standard isometric/dimetric inverse projection
+   * Standard isometric inverse projection
    */
   private isoScreenToTile(screen: ScreenPosition, z: number = 0): TilePosition {
     const { tileWidth, tileHeight, tileHigh } = this.config;
@@ -120,6 +136,22 @@ export class IsoMath {
     return {
       x: Math.floor(screen.x / tileWidth + adjustedY / tileHeight),
       y: Math.floor(adjustedY / tileHeight - screen.x / tileWidth),
+      z: z,
+    };
+  }
+
+  /**
+   * Dimetric inverse projection (2:1 slope)
+   */
+  private diamondScreenToTile(screen: ScreenPosition, z: number = 0): TilePosition {
+    const { tileWidth, tileHeight, tileHigh } = this.config;
+    const adjustedY = screen.y + z * tileHigh;
+    
+    // Inverse of dimetric formula: y = (tile.x + tile.y) * tileHeight / 4
+    // So: (tile.x + tile.y) = adjustedY * 4 / tileHeight
+    return {
+      x: Math.floor(screen.x / tileWidth + adjustedY * 2 / tileHeight),
+      y: Math.floor(adjustedY * 2 / tileHeight - screen.x / tileWidth),
       z: z,
     };
   }

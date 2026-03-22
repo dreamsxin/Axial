@@ -92,6 +92,20 @@ export class IsoRenderer {
   }
 
   /**
+   * Update projection type and recreate isoMath
+   */
+  setProjection(projection: 'isometric' | 'dimetric' | 'staggered', staggerAxis?: 'x' | 'y', staggerEven?: boolean): void {
+    this.config.projection = projection;
+    if (staggerAxis !== undefined) this.config.staggerAxis = staggerAxis;
+    if (staggerEven !== undefined) this.config.staggerEven = staggerEven;
+    
+    // Recreate isoMath with new projection
+    this.isoMath = new IsoMath(this.config);
+    
+    console.log('[IsoRenderer] Projection updated:', projection);
+  }
+
+  /**
    * Initialize the renderer
    */
   async init(canvas?: HTMLCanvasElement): Promise<void> {

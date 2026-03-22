@@ -505,8 +505,11 @@ export class DebugPanel {
   renderAxes(): void {
     console.log('[DebugPanel] renderAxes called, checked:', this.chkAxes?.checked);
     
-    // Clear existing axes from debugContainer
-    this.renderer.debugContainer.removeChildren();
+    // Clear existing axes only (not grid lines)
+    const existingAxes = this.renderer.debugContainer.getChildByLabel('axes');
+    if (existingAxes) {
+      existingAxes.destroy({ children: true });
+    }
 
     if (!this.chkAxes?.checked) {
       console.log('[DebugPanel] Axes checkbox not checked, skipping');
@@ -514,6 +517,7 @@ export class DebugPanel {
     }
 
     const graphics = new Graphics();
+    graphics.label = 'axes';
     // Get origin position in rootContainer coordinates (same as mapContainer)
     const originPos = this.renderer.isoMath.tileToScreen({ x: 0, y: 0, z: 0 });
     const axisLength = 120;
