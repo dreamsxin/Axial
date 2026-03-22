@@ -5,7 +5,7 @@
 
 import { Assets, Texture, Sprite, Graphics, Container, Text } from 'pixi.js';
 import { IsoRenderer } from '../src/render/IsoRenderer';
-import { Map } from '../src/core/Map';
+import { Map as GameMap } from '../src/core/Map';
 import { Tile } from '../src/core/Tile';
 import { DebugPanel } from '../src/ui/DebugPanel';
 
@@ -92,14 +92,22 @@ let RENDERER_CONFIG = {
   projection: 'isometric' as 'isometric' | 'dimetric' | 'staggered',
 };
 
+// Grid tile data with tileset reference
+interface GridTile {
+  frame: number;
+  tilesetIndex: number;  // Which tileset this tile uses
+}
+
 // State
 let selectedFrameIndex: number | null = null;
-let gridData: (number | null)[][] = [];
+let gridData: (GridTile | null)[][] = [];
+let currentTilesetIndex: number = 0;  // Currently selected tileset index
 let renderer: IsoRenderer;
-let map: Map;
+let map: GameMap;
 let debugPanel: DebugPanel;
 let paletteContainer: Container;
 let tilesetTexture: Texture | null = null;
+let tilesetTextures: Map<number, Texture> = new Map();  // Cache textures per tileset
 let isDragging = false;
 let lastMouseX = 0;
 let lastMouseY = 0;
@@ -190,6 +198,7 @@ function populateTilesetSelector(): void {
 function selectTileset(index: number): void {
   if (index < 0 || index >= tilesets.length) return;
   
+  currentTilesetIndex = index;
   currentTileset = tilesets[index];
   TILE_WIDTH = currentTileset.tileWidth;
   TILE_HEIGHT = currentTileset.tileHeight;
@@ -226,22 +235,25 @@ async function loadTilesetTexture(path: string): Promise<void> {
   try {
     const statusEl = document.getElementById('status');
     
-    // Load new texture (don't unload old one first to avoid race condition)
-    const newTexture = await Assets.load(path);
-    console.log('[TileEditor] Loaded texture:', path, newTexture.source.width, '×', newTexture.source.height);
+    // Check if texture is already cached
+    let texture = tilesetTextures.get(currentTilesetIndex);
+    
+    if (!texture) {
+      // Load new texture
+      texture = await Assets.load(path);
+      console.log('[TileEditor] Loaded texture:', path, texture.source.width, '×', texture.source.height);
+      
+      // Cache texture for this tileset
+      tilesetTextures.set(currentTilesetIndex, texture);
+    }
     
     // Update status
     if (statusEl) {
-      statusEl.textContent = `${currentTileset?.name}: ${newTexture.source.width}×${newTexture.source.height}px`;
+      statusEl.textContent = `${currentTileset?.name}: ${texture.source.width}×${texture.source.height}px`;
     }
     
-    // Unload old texture after new one is loaded
-    if (tilesetTexture && tilesetTexture.source.url !== path) {
-      Assets.unload(tilesetTexture.source.url);
-    }
-    
-    // Update texture reference
-    tilesetTexture = newTexture;
+    // Update current texture reference
+    tilesetTexture = texture;
 
     // Reinitialize renderer with new config (only if renderer exists)
     if (renderer) {
@@ -369,10 +381,10 @@ async function initRenderer(container: HTMLElement): Promise<void> {
   renderer = new IsoRenderer(RENDERER_CONFIG);
   await renderer.init(container);  // Auto setup input handlers
 
-  map = new Map({ width: GRID_SIZE, height: GRID_SIZE, high: 1 });
+  map = new GameMap({ width: GRID_SIZE, height: GRID_SIZE, high: 1 });
 
   // Create debug panel with grid enabled
-  debugPanel = new DebugPanel(renderer, map, {
+  debugPanel = new DebugPanel(renderer, map as any, {
     showGrid: true,        // Enable grid lines from DebugPanel
     showGridMarkers: false,
     showTileDots: false,
@@ -535,19 +547,12 @@ function setProjection(projection: 'isometric' | 'dimetric' | 'staggered'): void
   const screenPos = renderer.isoMath.tileToScreen(testTile);
   console.log(`[TileEditor] Projection ${projection}: Tile(5,5) → Screen(${screenPos.x}, ${screenPos.y})`);
   
-  // Re-render grid and grid lines
+  // Re-render grid
   renderGrid();
   
-  // Re-render grid lines if enabled (they depend on isoMath)
-  const chkGrid = document.getElementById('chk-grid-lines') as HTMLInputElement;
-  if (chkGrid?.checked && debugPanel) {
-    debugPanel.renderGridLines();
-  }
-  
-  // Re-render axes if enabled (they depend on isoMath)
-  const chkAxes = document.getElementById('chk-axes') as HTMLInputElement;
-  if (chkAxes?.checked && debugPanel) {
-    debugPanel.renderAxes();
+  // Re-render debug overlay (grid lines + axes) if enabled
+  if (debugPanel) {
+    debugPanel.renderDebugOverlay();
   }
   
   console.log('[TileEditor] Projection:', projection);
@@ -593,16 +598,9 @@ function setViewAngle(angle: number): void {
   // Re-render grid
   renderGrid();
   
-  // Re-render grid lines if enabled
-  const chkGrid = document.getElementById('chk-grid-lines') as HTMLInputElement;
-  if (chkGrid?.checked && debugPanel) {
-    debugPanel.renderGridLines();
-  }
-  
-  // Re-render axes if enabled (they depend on isoMath)
-  const chkAxes = document.getElementById('chk-axes') as HTMLInputElement;
-  if (chkAxes?.checked && debugPanel) {
-    debugPanel.renderAxes();
+  // Re-render debug overlay (grid lines + axes) if enabled
+  if (debugPanel) {
+    debugPanel.renderDebugOverlay();
   }
 }
 
@@ -801,20 +799,26 @@ function renderGrid(): void {
   );
   childrenToRemove.forEach(child => renderer.mapContainer.removeChild(child));
 
-  // Render placed tiles
-  const tilesToRender: Array<{ x: number; y: number; frame: number; depth: number }> = [];
+  // Render placed tiles with their original tileset
+  const tilesToRender: Array<{ x: number; y: number; frame: number; tilesetIndex: number; depth: number }> = [];
   for (let y = 0; y < GRID_SIZE; y++) {
     for (let x = 0; x < GRID_SIZE; x++) {
-      const frameIndex = gridData[y][x];
-      if (frameIndex !== null) {
-        tilesToRender.push({ x, y, frame: frameIndex, depth: x + y });
+      const gridTile = gridData[y][x];
+      if (gridTile !== null) {
+        tilesToRender.push({ 
+          x, 
+          y, 
+          frame: gridTile.frame, 
+          tilesetIndex: gridTile.tilesetIndex,
+          depth: x + y 
+        });
       }
     }
   }
   tilesToRender.sort((a, b) => a.depth - b.depth);
 
   for (const tile of tilesToRender) {
-    renderIsoTile(tile.x, tile.y, tile.frame);
+    renderIsoTileWithTileset(tile.x, tile.y, tile.frame, tile.tilesetIndex);
   }
 
   // Title
@@ -834,17 +838,25 @@ function renderGrid(): void {
 }
 
 /**
- * Render single tile
+ * Render single tile with specific tileset
  */
-function renderIsoTile(gridX: number, gridY: number, frameIndex: number): void {
-  if (!tilesetTexture) return;
+function renderIsoTileWithTileset(gridX: number, gridY: number, frameIndex: number, tilesetIndex: number): void {
   const screenPos = renderer.isoMath.tileToScreen({ x: gridX, y: gridY, z: 0 });
 
-  const frameX = frameIndex % TILE_COLUMNS;
-  const frameY = Math.floor(frameIndex / TILE_COLUMNS);
+  // Get the texture for this tile's original tileset
+  const texture = tilesetTextures.get(tilesetIndex);
+  if (!texture) return;
+  
+  // Get the tileset config for dimensions
+  const tileset = tilesets[tilesetIndex];
+  if (!tileset) return;
+  
+  const frameX = frameIndex % tileset.tileX;
+  const frameY = Math.floor(frameIndex / tileset.tileX);
+  
   const frame = new Texture({
-    source: tilesetTexture.source,
-    frame: { x: frameX * TILE_WIDTH, y: frameY * TILE_HEIGHT, width: TILE_WIDTH, height: TILE_HEIGHT },
+    source: texture.source,
+    frame: { x: frameX * tileset.tileWidth, y: frameY * tileset.tileHeight, width: tileset.tileWidth, height: tileset.tileHeight },
   });
 
   const sprite = new Sprite(frame);
@@ -859,10 +871,11 @@ function renderIsoTile(gridX: number, gridY: number, frameIndex: number): void {
  */
 function placeTile(gridX: number, gridY: number): void {
   if (selectedFrameIndex === null) return;
-  gridData[gridY][gridX] = selectedFrameIndex;
+  gridData[gridY][gridX] = {
+    frame: selectedFrameIndex,
+    tilesetIndex: currentTilesetIndex,  // Store which tileset was used
+  };
   renderGrid();
-  const slot = document.querySelector(`[data-frame-index="${selectedFrameIndex}"]`);
-  selectTile(selectedFrameIndex);
 }
 
 /**
@@ -889,16 +902,26 @@ function clearGrid(): void {
  * Export data
  */
 function exportData(): void {
-  const tiles: Array<{ x: number; y: number; frame: number }> = [];
+  const tiles: Array<{ x: number; y: number; frame: number; tilesetIndex: number; tilesetName: string }> = [];
   for (let y = 0; y < GRID_SIZE; y++) {
     for (let x = 0; x < GRID_SIZE; x++) {
-      const frame = gridData[y][x];
-      if (frame !== null) tiles.push({ x, y, frame });
+      const gridTile = gridData[y][x];
+      if (gridTile !== null) {
+        const tileset = tilesets[gridTile.tilesetIndex];
+        tiles.push({ 
+          x, 
+          y, 
+          frame: gridTile.frame,
+          tilesetIndex: gridTile.tilesetIndex,
+          tilesetName: tileset ? tileset.name : 'unknown'
+        });
+      }
     }
   }
 
   const data = {
     gridSize: GRID_SIZE,
+    tilesets: tilesets.map(ts => ({ name: ts.name, path: ts.path })),
     tileConfig: { tileWidth: TILE_WIDTH, tileHeight: TILE_HEIGHT, tileColumns: TILE_COLUMNS, tileRows: TILE_ROWS },
     tileOffset: { x: tileOffsetX, y: tileOffsetY },
     tiles,

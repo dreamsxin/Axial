@@ -450,29 +450,48 @@ export class DebugPanel {
   }
 
   /**
-   * Render grid lines (independent of map tiles, covers entire world)
+   * Render grid lines - now calls renderDebugOverlay for complete redraw
    */
   renderGridLines(): void {
-    console.log('[DebugPanel] renderGridLines called, checked:', this.chkGridLines?.checked);
+    this.renderDebugOverlay();
+  }
+  
+  /**
+   * Render axes - now calls renderDebugOverlay for complete redraw
+   */
+  renderAxes(): void {
+    this.renderDebugOverlay();
+  }
+
+  /**
+   * Render complete debug overlay (grid + axes + labels)
+   * Complete redraw ensures no artifacts from previous renders
+   */
+  renderDebugOverlay(): void {
+    // Clear entire debug container
+    this.renderer.debugContainer.removeChildren();
     
-    // Clear existing grid lines
-    const existingGrid = this.renderer.debugContainer.getChildByLabel('gridLines');
-    if (existingGrid) {
-      existingGrid.destroy({ children: true });
+    // Render grid lines if enabled
+    if (this.chkGridLines?.checked) {
+      this.renderGridLinesInternal();
     }
-
-    if (!this.chkGridLines?.checked) {
-      console.log('[DebugPanel] Grid lines not checked, skipping');
-      return;
+    
+    // Render axes if enabled
+    if (this.chkAxes?.checked) {
+      this.renderAxesInternal();
     }
-
+  }
+  
+  /**
+   * Internal: render grid lines (called by renderDebugOverlay)
+   */
+  private renderGridLinesInternal(): void {
     const graphics = new Graphics();
     graphics.label = 'gridLines';
     
     // Use map dimensions, or default to large grid
     const width = this.map.config.width;
     const height = this.map.config.height;
-    const { tileWidth, tileHeight } = this.renderer.config;
 
     // Draw grid lines along X axis (vertical in isometric view)
     for (let x = 0; x <= width; x++) {
@@ -496,26 +515,12 @@ export class DebugPanel {
     graphics.stroke({ width: 1, color: 0x444466, alpha: 0.4 });
 
     this.renderer.debugContainer.addChild(graphics);
-    console.log('[DebugPanel] Grid lines rendered:', width, '×', height);
   }
-
+  
   /**
-   * Render axis indicators (public method for external calls)
+   * Internal: render axes (called by renderDebugOverlay)
    */
-  renderAxes(): void {
-    console.log('[DebugPanel] renderAxes called, checked:', this.chkAxes?.checked);
-    
-    // Clear existing axes only (not grid lines)
-    const existingAxes = this.renderer.debugContainer.getChildByLabel('axes');
-    if (existingAxes) {
-      existingAxes.destroy({ children: true });
-    }
-
-    if (!this.chkAxes?.checked) {
-      console.log('[DebugPanel] Axes checkbox not checked, skipping');
-      return;
-    }
-
+  private renderAxesInternal(): void {
     const graphics = new Graphics();
     graphics.label = 'axes';
     // Get origin position in rootContainer coordinates (same as mapContainer)
@@ -578,24 +583,33 @@ export class DebugPanel {
     graphics.stroke({ width: 2, color: 0x44ff44, alpha: 0.9 });
 
     // Z axis (blue) - points straight up in screen space
-    const zEndY = originPos.y - axisLength;
+    // Calculate visual length to match X/Y axis length
+    // X/Y axis length in screen space
+    const xyVisualLength = Math.sqrt(
+      Math.pow(xEndX - originPos.x, 2) + Math.pow(xEndY - originPos.y, 2)
+    );
+    
+    // Z axis goes straight up (negative Y in screen space)
+    const zEndX = originPos.x;
+    const zEndY = originPos.y - xyVisualLength;
+    
     graphics.moveTo(originPos.x, originPos.y);
-    graphics.lineTo(originPos.x, zEndY);
+    graphics.lineTo(zEndX, zEndY);
     graphics.stroke({ width: 3, color: 0x4444ff, alpha: 0.9 });
     
     // Z axis arrow - same size as X/Y axes (10px)
-    const zAngle = -Math.PI / 2;  // Pointing up (-90 degrees)
-    const zArrowSize = 10;  // Same as X/Y axes
+    const zAngle = -Math.PI / 2;  // Pointing up
+    const zArrowSize = 10;
     const zArrowAngle1 = zAngle - Math.PI / 6;
     const zArrowAngle2 = zAngle + Math.PI / 6;
-    graphics.moveTo(originPos.x, zEndY);
+    graphics.moveTo(zEndX, zEndY);
     graphics.lineTo(
-      originPos.x - zArrowSize * Math.cos(zArrowAngle1),
+      zEndX - zArrowSize * Math.cos(zArrowAngle1),
       zEndY - zArrowSize * Math.sin(zArrowAngle1)
     );
-    graphics.moveTo(originPos.x, zEndY);
+    graphics.moveTo(zEndX, zEndY);
     graphics.lineTo(
-      originPos.x - zArrowSize * Math.cos(zArrowAngle2),
+      zEndX - zArrowSize * Math.cos(zArrowAngle2),
       zEndY - zArrowSize * Math.sin(zArrowAngle2)
     );
     graphics.stroke({ width: 2, color: 0x4444ff, alpha: 0.9 });
@@ -632,7 +646,7 @@ export class DebugPanel {
       fontWeight: 'bold',
     });
     zLabel.anchor.set(0.5, 1);
-    zLabel.x = originPos.x;
+    zLabel.x = zEndX;
     zLabel.y = zEndY - 15;
     this.renderer.debugContainer.addChild(zLabel);
 
